@@ -1,6 +1,9 @@
+import imp
+from turtle import forward
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from module import FCMethod as Method
 
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -10,16 +13,16 @@ import numpy as np
 import random
 import pdb
 
-
 batch_size = 128
 workers = 4
 use_cuda = True
 lr = 0.001
-end_lr = 0.00001
-momentum = 0.99
-weight_decay = 0.01
-epochs = 2000
+end_lr = 0.0001
+epochs = 4000
 end_epochs = int(0.9*epochs)
+momentum = 0.9
+weight_decay = 0.001
+optimizer_type = 'AdamW'
 print_freq = 10
 only_val = False
 
@@ -51,34 +54,7 @@ class MyDataset(Dataset):
 		if self.use_cuda: x, y = x.cuda(), y.cuda()
 		return x, y
 
-class MyMethod(nn.Module):
-	def __init__(self):
-		super().__init__()
-		self.fc = nn.Sequential(
-			nn.Linear(2,100),
-			nn.ReLU(),
-			nn.Linear(100,100),
-			nn.ReLU(),
-			nn.Linear(100,100),
-			nn.ReLU(),
-			nn.Linear(100,100),
-			nn.ReLU(),
-			nn.Linear(100,100),
-			nn.ReLU(),
-			nn.Linear(100,2)
-			)
-		self.apply(self._init_weight)
 
-	def _init_weight(self, m):
-		if isinstance(m, nn.Linear):
-			nn.init.xavier_normal_(m.weight)
-			nn.init.constant_(m.bias, 0)
-
-
-	def forward(self, x):
-		# pdb.set_trace()
-		x = self.fc(x)
-		return x
 
 
 def calc_acc(pred, y):
@@ -110,8 +86,6 @@ def train_iterations(model, dataset, epoch, optimizer, criterion, calc, print_fr
 		all_loss += loss.item()
 
 	return float(all_acc)/float(print_freq * batch_size), all_loss / float(print_freq)
-
-
 
 def evaluate_iterations(model, dataset, epoch, calc, print_freq, batch_size):
 	model.eval()
@@ -146,11 +120,13 @@ def main():
 
 
 	## init model and optimizer
-	model = MyMethod()
+	model = Method()
 	if use_cuda: model = model.cuda()
 
-	# optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum=momentum, weight_decay = weight_decay)
-	optimizer = torch.optim.AdamW(model.parameters(), lr = lr, weight_decay = weight_decay)
+	if optimizer_type == 'SGD':
+		optimizer = torch.optim.SGD(model.parameters(), lr = lr, momentum=momentum, weight_decay = weight_decay)
+	else:
+		optimizer = torch.optim.AdamW(model.parameters(), lr = lr, weight_decay = weight_decay)
 	lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda x: (1 - min(1, (float(x) / float(end_epochs))) * ((lr-end_lr)/lr)))
 	criterion = nn.CrossEntropyLoss(reduction='mean')
 
@@ -173,20 +149,23 @@ def main():
 		tb.add_scalar('metric/LR', optimizer.param_groups[0]["lr"], epoch)
 		lr_scheduler.step()
 
-		acc = evaluate_iterations(model, test_set, epoch, calc_acc, print_freq, batch_size)
-		tb.add_scalar('metric/Test_acc', acc, epoch)
-		print('Epoch {:04d} | LR: {:.8f} | Train acc: {:.6f} Loss: {:.6f} | Test acc {:.6f} | Time: {:.1f}s'.format(epoch, optimizer.param_groups[0]["lr"], train_acc, avg_loss, acc, time.time() - start_time))
+		acc = evaluate_iterations(model, val_set, epoch, calc_acc, print_freq, batch_size)
+		tb.add_scalar('metric/Val_acc', acc, epoch)
+		print('Epoch {:04d} | LR: {:.8f} | Train acc: {:.6f} Loss: {:.6f} | Val acc {:.6f} | Time: {:.1f}s'.format(epoch, optimizer.param_groups[0]["lr"], train_acc, avg_loss, acc, time.time() - start_time))
 		
 		if acc > best_acc:
 			# torch.save(model.state_dict(), 'best.pth')
 			best_acc = acc
 			best_epoch = epoch
+			best_model = model
 
 
 	tb.close()
-	acc = evaluate_iterations(model, val_set, epoch, calc_acc, print_freq, batch_size)
-	print('Validation accuracy is {:.6f}'.format(acc))
-	print('Best test accuracy is {:.6f} on {:04d} epoch'.format(best_acc, best_epoch))
+	acc = evaluate_iterations(best_model, test_set, epoch, calc_acc, print_freq, batch_size)
+	print('Test accuracy on best validation model is {:.6f}'.format(acc))
+
+	acc = evaluate_iterations(model, test_set, epoch, calc_acc, print_freq, batch_size)
+	print('Test accuracy on latest validation model is {:.6f}'.format(acc))
 
 if __name__ == "__main__":
 	main()
