@@ -18,7 +18,7 @@ lr = 0.001
 end_lr = 0.00001
 momentum = 0.99
 weight_decay = 0.01
-epochs = 20
+epochs = 2000
 end_epochs = int(0.9*epochs)
 print_freq = 10
 only_val = False
@@ -39,7 +39,7 @@ class MyDataset(Dataset):
 
 	def __getitem__(self, idx):
 		'''
-		self.x: N*C, self.y: N
+		self.x: N*C, self.y: N [tensor data on cuda]
 		'''
 		return self.x[idx], self.y[idx]
 
@@ -183,7 +183,7 @@ def main():
 			best_epoch = epoch
 
 
-
+	tb.close()
 	acc = evaluate_iterations(model, val_set, epoch, calc_acc, print_freq, batch_size)
 	print('Validation accuracy is {:.6f}'.format(acc))
 	print('Best test accuracy is {:.6f} on {:04d} epoch'.format(best_acc, best_epoch))
