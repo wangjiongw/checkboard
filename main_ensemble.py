@@ -23,6 +23,7 @@ epochs = 2000
 end_epochs = int(0.9*epochs)
 print_freq = 10
 only_val = False
+save_ckpt = False
 
 data_root = r'./data'
 class MyDataset(Dataset):
@@ -248,12 +249,13 @@ def main():
 		print('Epoch {:04d} | LR: {:.8f} | Train acc: {:.6f} Loss: {:.6f} | Val acc {:.6f} | Time: {:.1f}s'.format(epoch, optimizer.param_groups[0]["lr"], train_acc, avg_loss, acc, time.time() - start_time))
 		
 		if acc > best_acc:
-			# torch.save(model.state_dict(), 'best.pth')
-			best_acc = acc
-			best_epoch = epoch
-			best_models = models
-			for i in range(len(models)):
-				torch.save(models[i].state_dict(), os.path.join(tb_path, 'val_best_{}.pth'.format(i+1)))
+                    # torch.save(model.state_dict(), 'best.pth')
+                    best_acc = acc
+                    best_epoch = epoch
+                    best_models = models
+                    if save_ckpt:
+                        for i in range(len(models)):
+                            torch.save(models[i].state_dict(), os.path.join(tb_path, 'val_best_{}.pth'.format(i+1)))
 
 
 	acc = evaluate_iterations(best_models, test_set, best_epoch, calc_acc, print_freq, batch_size)
