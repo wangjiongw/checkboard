@@ -1,0 +1,4 @@
+2022-05-17-15-05-33 FCNet, 6-100-ReLU
+2022-05-17-15-25-13 FCNet, 6-100-ABS												test acc = 0.873
+2022-05-17-16-05-20 FCNets, 6-100_10-100_6-300-ABS, best model on test set; 		test acc = 0.923
+2022-05-17-16-59-39 FCNets, 6-100_10-100_6-300_ABS, best model on val set;  		test acc = 0.893
