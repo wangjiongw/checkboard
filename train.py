@@ -107,14 +107,14 @@ def evaluate_iterations(model, dataset, epoch, calc, print_freq, batch_size):
     return avg_acc
 
 
-
 def main():
     # pdb.set_trace()
     args = parse_args()
 
     ## init tensorboard
     now_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-    tb_path = os.path.join(os.path.join('./', 'tb', '{}_{}_{}'.format(args.exp_name, args.model_size, now_time)))
+    today = time.strftime('%Y%m%d', time.localtime(time.time()))
+    tb_path = os.path.join(os.path.join('./', 'tb_{}'.format(today), '{}_{}_{}'.format(args.exp_name, '-'.join(args.model_size), now_time)))
     if not os.path.exists(tb_path):
         os.makedirs(tb_path)
     tb = SummaryWriter(tb_path)
@@ -195,14 +195,14 @@ def main():
 
         if acc_val > best_acc_val:
             # torch.save(model.state_dict(), 'best.pth')
-            save_ckpt(model, acc_val, epoch, tb_path, keyword='_'.join(args.model_size), subset='val')
+            save_ckpt(model, acc_val, epoch, tb_path, args.model_size, subset='val')
             best_val_acc = acc_val
             best_val_epoch = epoch
             best_val_model = model
 
         if acc_test > best_acc_test:
             # torch.save(model.state_dict(), 'best.pth')
-            save_ckpt(model, acc_test, epoch, tb_path, keyword='_'.join(args.model_size), subset='test')
+            save_ckpt(model, acc_test, epoch, tb_path, args.model_size, subset='test')
             best_test_acc = acc_test
             best_test_epoch = epoch
             best_test_model = model
@@ -219,7 +219,7 @@ def main():
     acc_val = evaluate_iterations(model, val_set, epoch, calc_acc, args.print_freq, args.batch_size)
     print('Test accuracy on latest validation model is {:.6f} [Val: {:.6f}]'.format(acc_test, acc_val))
 
-    with open('exp_log.txt', 'a') as fw:
+    with open('exp_log_{}.txt'.format(today), 'a') as fw:
         line = '\n\n|'
         for k, v in vars(args).items():
             line += '| {}: {} |'.format(k, v)

@@ -22,8 +22,8 @@ class HanLayer(nn.Module):
         '''
         # pdb.set_trace()
         norm = torch.norm(self.u.weight, p=2)
-        u = self.u.weight.squeeze(0).repeat(x.shape[0],1)
-        b = self.b.weight.squeeze(0).repeat(x.shape[0],1)
+        u = self.u.weight.squeeze(0).repeat(x.shape[0], 1)
+        b = self.b.weight.squeeze(0).repeat(x.shape[0], 1)
         x = x - 2. * torch.matmul(u.unsqueeze(1), x.unsqueeze(-1)).squeeze(-1) / norm * u + b
         x = torch.abs(x)
         return x
